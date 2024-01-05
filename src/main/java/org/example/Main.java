@@ -1,16 +1,22 @@
 package org.example;
 
-import com.fazecast.jSerialComm.SerialPort;
-import com.fazecast.jSerialComm.SerialPortDataListener;
-import com.fazecast.jSerialComm.SerialPortEvent;
+import com.github.anastaciocintra.escpos.EscPos;
+import com.github.anastaciocintra.escpos.Style;
+import com.github.anastaciocintra.escpos.image.*;
+import com.github.anastaciocintra.output.PrinterOutputStream;
 
-import java.nio.charset.StandardCharsets;
+import javax.imageio.ImageIO;
+import javax.print.PrintService;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class Main {
     public static void main(String[] args) {
         System.out.println("Iniciando programa ....");
 
 
+        /*
         SerialPort[] ports = SerialPort.getCommPorts();
 
         for (SerialPort port : ports) {
@@ -18,7 +24,7 @@ public class Main {
         }
 
         if (args.length >= 1) {
-            SerialPort port = ports[1];
+            SerialPort port = ports[Integer.parseInt(args[0])];
             System.out.println("Conectando a puerto : " + port.getSystemPortName());
 
             port.openPort();
@@ -41,11 +47,37 @@ public class Main {
                 }
             });
 
-            System.out.println("Imprimir ¡Hola mundo!");
+            System.out.println("ENVIANDO IMAGEN PARA IMPRIMIR");
+            InputStream is = Main.class.getResourceAsStream("/ganatiempo.bmp");
 
-            String text = "Hola mundo";
-            byte[] textLine = new byte[text.getBytes(StandardCharsets.UTF_8).length];
-            port.writeBytes(text.getBytes(StandardCharsets.UTF_8), textLine.length);
+            try {
+
+                if (is != null) {
+                    BufferedImage img = ImageIO.read(is);
+                    int width = img.getWidth();
+                    int height = img.getHeight();
+
+                    // Convertir la imagen a monocromo
+                    BufferedImage monoImage = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_BYTE_BINARY);
+                    Graphics2D g = monoImage.createGraphics();
+                    g.drawImage(img, 0, 0, null);
+                    g.dispose();
+
+                    // Convertir la imagen a un array de bytes
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    ImageIO.write(monoImage, "bmp", baos);
+                    byte[] imageBytes = baos.toByteArray();
+
+                    // Crear el comando de imagen
+                    byte[] imgCommand = new byte[]{0x1D, 0x76, 0x30, 0x00, (byte) (img.getWidth() / 8), 0x00, (byte) (img.getHeight() % 256), (byte) (img.getHeight() / 256)};
+
+                    // Enviar el comando y los datos de la imagen a la impresora
+                    port.writeBytes(imgCommand, imgCommand.length);
+                    port.writeBytes(imageBytes, imageBytes.length);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
 
             System.out.println("ENVIANDO COMANDOS DE FEED");
 
@@ -57,6 +89,12 @@ public class Main {
             port.writeBytes(newLine, newLine.length);
             port.writeBytes(newLine, newLine.length);
 
+            System.out.println("Imprimir ¡Hola mundo!");
+
+            String text = "Hola mundo";
+            byte[] textLine = new byte[text.getBytes(StandardCharsets.UTF_8).length];
+            port.writeBytes(text.getBytes(StandardCharsets.UTF_8), textLine.length);
+
             System.out.println("ENVIANDO COMANDO DE CORTE DE PAPEL");
             // Cortar el papel
             byte[] cutPaper = new byte[]{0x1B, 0x6d}; // Partcial cut
@@ -65,7 +103,56 @@ public class Main {
             System.out.println("FINALIZANDO COMANDOS");
 
         }
-        System.out.println("Finalizando programa ...");
+        System.out.println("Finalizando programa ...");*/
+
+
+        if (args.length != 1) {
+            System.out.println("Usage: java -jar getstart.jar (\"printer name\")");
+            System.out.println("Printer list to use:");
+            String[] printServicesNames = PrinterOutputStream.getListPrintServicesNames();
+            for (String printServiceName : printServicesNames) {
+                System.out.println(printServiceName);
+            }
+
+            System.exit(0);
+        }
+
+        printInfo(args[0]);
+
+    }
+
+    public static void printInfo(String printerName) {
+        //this call is slow, try to use it only once and reuse the PrintService variable.
+        PrintService printService = PrinterOutputStream.getPrintServiceByName(printerName);
+        try {
+            PrinterOutputStream printerOutputStream = new PrinterOutputStream(printService);
+
+            InputStream is = Main.class.getResourceAsStream("/ganatiempo.png");
+            BufferedImage imageBufferedImage = ImageIO.read(is);
+
+            // this wrapper uses esc/pos sequence: "GS 'v' '0'"
+            RasterBitImageWrapper imageWrapper = new RasterBitImageWrapper();
+
+            EscPos escpos = new EscPos(new PrinterOutputStream(printService));
+
+            Style title = new Style().setFontSize(Style.FontSize._2, Style.FontSize._2);
+            escpos.writeLF(title
+                    , "Dithering BitonalThreshold");
+
+            escpos.writeLF("BitonalThreshold()");
+            // using bitonal threshold for dithering
+            Bitonal algorithm = new BitonalThreshold();
+            EscPosImage escposImage = new EscPosImage(new CoffeeImageImpl(imageBufferedImage), algorithm);
+            escpos.write(imageWrapper, escposImage);
+            escpos.feed(5);
+
+            escpos.cut(EscPos.CutMode.PART);
+            escpos.close();
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+
     }
 
 }
