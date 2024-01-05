@@ -1,6 +1,7 @@
 package org.example;
 
 import com.github.anastaciocintra.escpos.EscPos;
+import com.github.anastaciocintra.escpos.EscPosConst;
 import com.github.anastaciocintra.escpos.Style;
 import com.github.anastaciocintra.escpos.image.*;
 import com.github.anastaciocintra.output.PrinterOutputStream;
@@ -125,10 +126,81 @@ public class Main {
         //this call is slow, try to use it only once and reuse the PrintService variable.
         PrintService printService = PrinterOutputStream.getPrintServiceByName(printerName);
         try {
-            PrinterOutputStream printerOutputStream = new PrinterOutputStream(printService);
+
+            EscPos escpos = new EscPos(new PrinterOutputStream(printService));
+
+            /**
+             * LOGO ZONE
+             */
 
             InputStream is = Main.class.getResourceAsStream("/ganatiempo.png");
             BufferedImage imageBufferedImage = ImageIO.read(is);
+
+            Bitonal algorithm = new BitonalThreshold(127);
+            // creating the EscPosImage, need buffered image and algorithm.
+
+            EscPosImage escposImage = new EscPosImage(new CoffeeImageImpl(imageBufferedImage), algorithm);
+
+            // this wrapper uses esc/pos sequence: "ESC '*'"
+            BitImageWrapper imageWrapper = new BitImageWrapper();
+            imageWrapper.setJustification(EscPosConst.Justification.Center);
+            escpos.write(imageWrapper, escposImage);
+
+
+            Style welcomeStyle = new Style()
+                    .setFontSize(Style.FontSize._2, Style.FontSize._2)
+                    .setBold(true)
+                    .setJustification(EscPosConst.Justification.Center);
+
+            Style normalBoldStyle = new Style()
+                    .setFontSize(Style.FontSize._1, Style.FontSize._1)
+                    .setJustification(EscPosConst.Justification.Center)
+                    .setBold(true);
+
+            Style normalStyle = new Style()
+                    .setFontSize(Style.FontSize._1, Style.FontSize._1)
+                    .setJustification(EscPosConst.Justification.Center);
+
+            Style numberStyle = new Style()
+                    .setFontSize(Style.FontSize._5, Style.FontSize._5)
+                    .setJustification(EscPosConst.Justification.Center)
+                    .setBold(true);
+
+
+            //escpos.setCharacterCodeTable(EscPos.CharacterCodeTable.ISO8859_15_Latin9);
+
+            // Bienvenido
+            escpos.writeLF(welcomeStyle, "¡Bienvenido!");
+            escpos.feed(1);
+
+            // Numero de atencion
+            String attentionMessage = "Tu n\u0300mero de atención";
+            escpos.writeLF(normalBoldStyle, attentionMessage);
+
+            escpos.feed(2);
+
+            //Codigo numero
+            escpos.writeLF(numberStyle, "C58");
+
+            escpos.feed(2);
+
+            //Queue
+            escpos.writeLF(normalBoldStyle, "Caja");
+
+            escpos.feed(2);
+
+            escpos.writeLF(normalStyle, "BIENVENIDO A GANATIEMPO");
+
+            escpos.feed(5);
+
+            escpos.cut(EscPos.CutMode.PART);
+            escpos.close();
+            /*
+
+
+            InputStream is = Main.class.getResourceAsStream("/ganatiempo.png");
+            BufferedImage imageBufferedImage = ImageIO.read(is);
+
 
             // this wrapper uses esc/pos sequence: "GS 'v' '0'"
             RasterBitImageWrapper imageWrapper = new RasterBitImageWrapper();
@@ -147,7 +219,7 @@ public class Main {
             escpos.feed(5);
 
             escpos.cut(EscPos.CutMode.PART);
-            escpos.close();
+            escpos.close();*/
 
         } catch (IOException ex) {
             ex.printStackTrace();
