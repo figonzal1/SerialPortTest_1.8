@@ -136,16 +136,13 @@ public class Main {
             InputStream is = Main.class.getResourceAsStream("/ganatiempo.png");
             BufferedImage imageBufferedImage = ImageIO.read(is);
 
-            Bitonal algorithm = new BitonalThreshold(127);
+            Bitonal algorithm = new BitonalThreshold();
             // creating the EscPosImage, need buffered image and algorithm.
-
             EscPosImage escposImage = new EscPosImage(new CoffeeImageImpl(imageBufferedImage), algorithm);
-
             // this wrapper uses esc/pos sequence: "ESC '*'"
             BitImageWrapper imageWrapper = new BitImageWrapper();
             imageWrapper.setJustification(EscPosConst.Justification.Center);
             escpos.write(imageWrapper, escposImage);
-
 
             Style welcomeStyle = new Style()
                     .setFontSize(Style.FontSize._2, Style.FontSize._2)
@@ -191,35 +188,15 @@ public class Main {
 
             escpos.writeLF(normalStyle, "BIENVENIDO A GANATIEMPO");
 
-            escpos.feed(5);
+            escpos.feed(2);
+
+            escpos.writeLF(normalBoldStyle, "08/01/2024 09:14:00");
+            escpos.writeLF(normalStyle, "VIS\u00CDTANOS EN WWW.TEMPUSSPA.CL");
+
+            escpos.feed(4);
 
             escpos.cut(EscPos.CutMode.PART);
             escpos.close();
-            /*
-
-
-            InputStream is = Main.class.getResourceAsStream("/ganatiempo.png");
-            BufferedImage imageBufferedImage = ImageIO.read(is);
-
-
-            // this wrapper uses esc/pos sequence: "GS 'v' '0'"
-            RasterBitImageWrapper imageWrapper = new RasterBitImageWrapper();
-
-            EscPos escpos = new EscPos(new PrinterOutputStream(printService));
-
-            Style title = new Style().setFontSize(Style.FontSize._2, Style.FontSize._2);
-            escpos.writeLF(title
-                    , "Dithering BitonalThreshold");
-
-            escpos.writeLF("BitonalThreshold()");
-            // using bitonal threshold for dithering
-            Bitonal algorithm = new BitonalThreshold();
-            EscPosImage escposImage = new EscPosImage(new CoffeeImageImpl(imageBufferedImage), algorithm);
-            escpos.write(imageWrapper, escposImage);
-            escpos.feed(5);
-
-            escpos.cut(EscPos.CutMode.PART);
-            escpos.close();*/
 
         } catch (IOException ex) {
             ex.printStackTrace();
