@@ -156,6 +156,7 @@ public class Main {
 
             Style normalStyle = new Style()
                     .setFontSize(Style.FontSize._1, Style.FontSize._1)
+                    .setUnderline(Style.Underline.OneDotThick)
                     .setJustification(EscPosConst.Justification.Center);
 
             Style numberStyle = new Style()
@@ -164,14 +165,17 @@ public class Main {
                     .setBold(true);
 
 
-            //escpos.setCharacterCodeTable(EscPos.CharacterCodeTable.ISO8859_15_Latin9);
+            escpos.setCharacterCodeTable(EscPos.CharacterCodeTable.ISO8859_15_Latin9);
+
+            escpos.feed(1);
 
             // Bienvenido
             escpos.writeLF(welcomeStyle, "¡Bienvenido!");
+
             escpos.feed(1);
 
             // Numero de atencion
-            String attentionMessage = "Tu n\u0300mero de atención";
+            String attentionMessage = "Tu número de atención";
             escpos.writeLF(normalBoldStyle, attentionMessage);
 
             escpos.feed(2);
@@ -191,7 +195,7 @@ public class Main {
             escpos.feed(2);
 
             escpos.writeLF(normalBoldStyle, "08/01/2024 09:14:00");
-            escpos.writeLF(normalStyle, "VIS\u00CDTANOS EN WWW.TEMPUSSPA.CL");
+            escpos.writeLF(normalStyle, "VISÍTANOS EN WWW.TEMPUSSPA.CL");
 
             escpos.feed(4);
 
